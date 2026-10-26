@@ -659,6 +659,111 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             color: #7a2c16;
         }
 
+        /* Light Theme Audit Results & Cards Refinements */
+        [data-theme="light"] .meta-pill {
+            background: #ffffff;
+            border: 1px solid rgba(255, 106, 0, 0.25);
+            color: #6c2a18;
+            box-shadow: 0 2px 8px rgba(180, 50, 10, 0.05);
+        }
+        [data-theme="light"] .meta-pill:hover {
+            background: #fff8f5;
+            border-color: var(--flame-orange);
+        }
+        [data-theme="light"] .meta-pill svg {
+            stroke: var(--flame-orange);
+        }
+        [data-theme="light"] .meta-pill span {
+            color: #6c2a18;
+        }
+
+        [data-theme="light"] .info-tile {
+            background: #ffffff;
+            border: 1px solid rgba(255, 106, 0, 0.18);
+            box-shadow: 0 2px 10px rgba(180, 60, 20, 0.05);
+        }
+        [data-theme="light"] .info-tile:hover {
+            background: #fdfaf8;
+            border-color: rgba(255, 106, 0, 0.38);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(180, 60, 20, 0.09);
+        }
+        [data-theme="light"] .info-tile-label {
+            color: #9a3412;
+        }
+        [data-theme="light"] .info-tile-value {
+            color: #1e0905;
+        }
+
+        [data-theme="light"] .header-item-row {
+            background: #ffffff;
+            border: 1px solid rgba(255, 106, 0, 0.18);
+            box-shadow: 0 2px 8px rgba(180, 50, 10, 0.04);
+        }
+        [data-theme="light"] .header-item-row:hover {
+            background: #fdfaf8;
+            border-color: rgba(255, 106, 0, 0.35);
+            transform: translateX(4px);
+        }
+        [data-theme="light"] .header-item-name {
+            color: #1e0905;
+        }
+        [data-theme="light"] .header-item-desc {
+            color: #7a2c16;
+        }
+        [data-theme="light"] .header-item-val {
+            background: rgba(255, 106, 0, 0.09);
+            color: #c2410c;
+            border: 1px solid rgba(255, 106, 0, 0.2);
+        }
+
+        [data-theme="light"] .action-btn {
+            background: #ffffff;
+            border: 1px solid rgba(255, 106, 0, 0.25);
+            color: #6c2a18;
+            box-shadow: 0 2px 8px rgba(180, 50, 10, 0.06);
+        }
+        [data-theme="light"] .action-btn:hover {
+            border-color: var(--flame-orange);
+            color: var(--flame-orange);
+            box-shadow: 0 4px 14px rgba(255, 106, 0, 0.22);
+        }
+
+        [data-theme="light"] .status-badge.badge-secure {
+            background: rgba(255, 106, 0, 0.1);
+            color: #c2410c;
+            border-color: rgba(255, 106, 0, 0.35);
+            box-shadow: none;
+        }
+        [data-theme="light"] .status-badge.badge-warning {
+            background: rgba(217, 119, 6, 0.12);
+            color: #b45309;
+            border-color: rgba(217, 119, 6, 0.35);
+            box-shadow: none;
+        }
+        [data-theme="light"] .status-badge.badge-danger {
+            background: rgba(220, 38, 38, 0.12);
+            color: #b91c1c;
+            border-color: rgba(220, 38, 38, 0.35);
+            box-shadow: none;
+        }
+
+        [data-theme="light"] .fix-btn {
+            background: linear-gradient(135deg, #ff4500 0%, #ff6a00 55%, #ff8800 100%);
+            border: 1px solid rgba(255, 69, 0, 0.25);
+            color: #ffffff;
+            box-shadow: 0 3px 12px rgba(255, 80, 20, 0.28);
+        }
+        [data-theme="light"] .fix-btn svg {
+            stroke: #ffffff;
+        }
+        [data-theme="light"] .fix-btn:hover {
+            background: linear-gradient(135deg, #e63900 0%, #ff5500 50%, #ff6a00 100%);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(255, 80, 20, 0.45);
+            transform: translateY(-2px);
+        }
+
         /* Resets */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
@@ -1444,22 +1549,24 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             max-width: 480px; word-break: break-all;
         }
 
-        /* Fix Button (Image 2 Chromatic Ring Capsule Style) */
+        /* Fix Button (Sleek High-Contrast Capsule) */
         .fix-btn {
-            background: var(--ember-card-surface);
-            border: 1px solid var(--ember-card-border);
-            color: var(--flame-orange); padding: 8px 18px;
-            border-radius: 999px; font-size: 0.8rem; font-weight: 800;
-            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+            background: linear-gradient(135deg, rgba(255, 69, 0, 0.16) 0%, rgba(255, 106, 0, 0.24) 100%);
+            border: 1.5px solid rgba(255, 106, 0, 0.45);
+            color: #ff9838; padding: 7px 18px;
+            border-radius: 999px; font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1); font-family: var(--font-heading);
-            box-shadow: var(--ember-card-shadow);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
         }
         .fix-btn:hover {
-            background: var(--gradient-flame); color: #070303;
-            box-shadow: 0 0 18px var(--flame-glow); transform: translateY(-2px) scale(1.05);
+            background: var(--gradient-flame); color: #ffffff;
+            border-color: transparent;
+            box-shadow: 0 4px 18px var(--flame-glow); transform: translateY(-2px);
         }
-        .fix-btn:hover svg { animation: playfulWiggle 0.4s ease; }
-        .fix-btn svg { width: 15px; height: 15px; stroke: currentColor; }
+        .fix-btn:hover svg { animation: playfulWiggle 0.4s ease; stroke: #ffffff; }
+        .fix-btn:active { transform: translateY(0) scale(0.98); }
+        .fix-btn svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2.2; }
 
         /* JSON Code Terminal */
         .json-terminal {
@@ -3050,7 +3157,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             activeAuditData = data;
 
             document.getElementById('resTarget').textContent = data.target;
-            document.getElementById('resVerdict').textContent = `${data.verdict} &mdash; ${data.deductions.length ? data.deductions.length + ' vulnerabilities detected' : 'Zero critical flaws'}`;
+            document.getElementById('resVerdict').textContent = `${data.verdict} — ${data.deductions.length ? data.deductions.length + ' vulnerabilities detected' : 'Zero critical flaws'}`;
             document.getElementById('resIp').textContent = data.network.ip || 'Unknown';
             document.getElementById('resLatency').textContent = `${data.network.latency_ms}ms ping`;
             document.getElementById('resInfra').textContent = data.http.infrastructure || 'Direct';
