@@ -2,8 +2,21 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { AuditReport } from "./api/audit/route";
+<<<<<<< HEAD
 import { FindingsPanel, type Challenge } from "./ScanExtras";
 import { formatFriendlyError, type FriendlyError } from "@/lib/errors";
+=======
+<<<<<<< HEAD
+import { useAuth } from "./context/AuthContext";
+import Nav from "./nav";
+
+import RemediationGuideModal from "./RemediationGuideModal";
+import ScanHistoryDrawer from "./ScanHistoryDrawer";
+import SecOpsAuthModal from "./SecOpsAuthModal";
+import MainUI from "./MainUI";
+=======
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
+>>>>>>> 2fb172b8bd88aad685e79ea0fc4679d98d353713
 
 const REMEDIATION_DB: Record<
   string,
@@ -93,6 +106,13 @@ interface TerminalLog {
   msg: string;
 }
 
+<<<<<<< HEAD
+
+
+export default function CyberShieldPage() {
+
+  // Local States
+=======
 interface UserProfile {
   name: string;
   email: string;
@@ -100,6 +120,7 @@ interface UserProfile {
 }
 
 export default function CyberShieldPage() {
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [targetInput, setTargetInput] = useState("");
@@ -138,15 +159,33 @@ export default function CyberShieldPage() {
     setErrorDetails(null);
   };
 
+<<<<<<< HEAD
+
+
+  // Live Terminal
+  const [isTerminalVisible, setIsTerminalVisible] = useState(false);
+  const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
+  const [termStatus, setTermStatus] = useState<
+    "IDLE" | "ACTIVE" | "RUNNING" | "FINISHED" | "FAILED"
+  >("ACTIVE");
+=======
   // Live Terminal
   const [isTerminalVisible, setIsTerminalVisible] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
   const [termStatus, setTermStatus] = useState<"IDLE" | "ACTIVE" | "RUNNING" | "FINISHED" | "FAILED">("ACTIVE");
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   // Results
   const [auditData, setAuditData] = useState<AuditReport | null>(null);
   const [animatedScore, setAnimatedScore] = useState(0);
 
+<<<<<<< HEAD
+  // Copy Buttons
+  const [copyJsonText, setCopyJsonText] = useState("Copy JSON Report");
+  const [copyMdText, setCopyMdText] = useState("Copy Executive Markdown");
+
+  // Refs
+=======
   // Modals & Drawers
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [scanHistory, setScanHistory] = useState<AuditReport[]>([]);
@@ -172,12 +211,37 @@ export default function CyberShieldPage() {
   const [copyMdText, setCopyMdText] = useState("Copy Executive Markdown");
 
   const inputRef = useRef<HTMLInputElement>(null);
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorGlowRef = useRef<HTMLDivElement>(null);
   const cursorDotRef = useRef<HTMLDivElement>(null);
 
+<<<<<<< HEAD
+  // Shared Context States
+  const {
+    authModal,
+    setAuthModal,
+
+    isHistoryOpen,
+    setIsHistoryOpen,
+
+    scanHistory,
+    setScanHistory,
+
+    remedModal,
+    setRemedModal,
+
+    
+    setIsProfileDropdownOpen,
+    setUserProfile,
+  } = useAuth();
+
+  
+
+=======
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   // Audio Engine
   const playSound = useCallback(
     (type: "click" | "scanStart" | "success" | "error") => {
@@ -263,6 +327,9 @@ export default function CyberShieldPage() {
     } catch {}
   }, []);
 
+<<<<<<< HEAD
+
+=======
   const toggleTheme = () => {
     playSound("click");
     const next = theme === "dark" ? "light" : "dark";
@@ -270,6 +337,7 @@ export default function CyberShieldPage() {
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("cybershield-theme", next);
   };
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   const toggleAudio = () => {
     const next = !isAudioMuted;
@@ -782,16 +850,31 @@ ${Object.keys(d.http.present_headers || {})
     e.preventDefault();
     playSound("success");
     const name = authName.trim() || authEmail.split("@")[0] || "SecOps Analyst";
+<<<<<<< HEAD
+
+const initials = name
+  .split(" ")
+  .map((word) => word[0])
+  .join("")
+  .toUpperCase()
+  .slice(0, 2);
+    
+=======
     const initials = name.slice(0, 2).toUpperCase();
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
     setUserProfile({ name, email: authEmail, initials });
     setAuthModal((p) => ({ ...p, open: false }));
   };
 
+<<<<<<< HEAD
+
+=======
   const handleSignOut = () => {
     playSound("click");
     setUserProfile(null);
     setIsProfileDropdownOpen(false);
   };
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   const clearHistory = () => {
     playSound("click");
@@ -817,6 +900,10 @@ ${Object.keys(d.http.present_headers || {})
         <div className="pulse-orb pulse-orb-2" />
         <div className="pulse-orb pulse-orb-3" />
       </div>
+<<<<<<< HEAD
+
+=======
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
       <div className="cursor-glow" id="cursorGlow" ref={cursorGlowRef} />
       <div className="cursor-dot" id="cursorDot" ref={cursorDotRef} />
       <canvas
@@ -833,6 +920,18 @@ ${Object.keys(d.http.present_headers || {})
         }}
       />
 
+<<<<<<< HEAD
+      {/* NAV... */}
+      
+         <Nav />
+
+        {/* Main */}
+        <MainUI/>
+
+      <RemediationGuideModal playSound={playSound} />
+ 
+
+=======
       {/* ═══════════ NAVIGATION BAR ═══════════ */}
       <nav className="nav-bar">
         <div className="nav-inner">
@@ -1942,6 +2041,7 @@ ${Object.keys(d.http.present_headers || {})
           </p>
         </footer>
       </main>
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
       {/* ═══════════ REMEDIATION GUIDE MODAL ═══════════ */}
       {remedModal.open && (
@@ -2019,6 +2119,14 @@ ${Object.keys(d.http.present_headers || {})
       )}
 
       {/* ═══════════ SCAN HISTORY DRAWER ═══════════ */}
+<<<<<<< HEAD
+      <ScanHistoryDrawer
+  playSound={playSound}
+  onSelectReport={setAuditData}
+  onClearHistory={clearHistory}
+/>
+
+=======
       {isHistoryOpen && (
         <div
           className="drawer-backdrop open"
@@ -2106,6 +2214,7 @@ ${Object.keys(d.http.present_headers || {})
           </div>
         </div>
       )}
+>>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
       {/* ═══════════ SECOPS AUTH MODAL ═══════════ */}
       {authModal.open && (
