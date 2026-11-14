@@ -1,8 +1,52 @@
-# CYBERSHIELD — Threat Intelligence & Cryptographic Assurance Platform
+# CYBERSHIELD — Web Vulnerability Scanner as a Service (v4.0)
 
-CyberShield is an enterprise-grade security auditing platform that analyzes DNS resolution, TLS certificates, HTTP security headers, cookie flags, and threat attack surfaces.
+CyberShield is a full-stack, enterprise-grade web vulnerability scanner and threat intelligence platform built with **Next.js 16 (Turbopack) + React 19 + Tailwind CSS**.
 
-Now rebuilt as a modern fullstack **React 19 + Tailwind CSS + Next.js** application with identical aesthetics, rich glassmorphism, dynamic animations, Web Audio SFX, and high-performance serverless telemetry auditing.
+Engineered with a **"Safe by Design"** philosophy, CyberShield solves the fundamental pitfalls of automated scanners: abuse prevention, anti-SSRF perimeter isolation, domain ownership verification, and human-in-the-loop workflows with confidence ratings.
+
+---
+
+## 🛡️ Architecture & Threat Model
+
+### 1. Two-Tier Scan Model (Intrusiveness Separation)
+
+| Scan Tier | Scope & Intrusiveness | Target Prerequisites | Checks Performed |
+|---|---|---|---|
+| **Basic Tier** | **Passive & Non-Intrusive**<br>(Equivalent to standard browser inspection) | Any non-denylisted target | • **Security Headers:** HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy<br>• **TLS/SSL Handshake:** TLS 1.3/1.2 validation, cipher suites, certificate authority chain, expiry countdown, SHA-256 fingerprint<br>• **Cookie Isolation:** `Secure`, `HttpOnly`, `SameSite`<br>• **Supply Chain & Scripts:** Subresource Integrity (SRI) on 3rd-party scripts, mixed content audit, known-vulnerable JS libraries (jQuery, Bootstrap, AngularJS, Lodash)<br>• **DNS & Email Posture:** SPF, DMARC, and MX records<br>• **Information Leakage:** Server banners, `robots.txt`, and RFC 9116 `security.txt`<br>• **OWASP Top 10 (2021)** compliance matrix |
+| **Deep Tier** | **Active Probing & Exploit Indicators**<br>(Safe non-destructive canary payloads) | **Cryptographic Proof of Control Required** + Signed Legal Scope Attestation | • **Reflected XSS:** Non-executable canary tokens injected into query parameters<br>• **Open Redirects:** Destination validation against external probes<br>• **SQL Injection:** Safe single-quote syntax anomaly detection (non-destructive)<br>• **Sensitive File Exposure:** `.env`, `.git/HEAD`, `phpinfo.php`, and administrative panels<br>• **Active CORS:** Origin reflection and credential theft probes<br>• **Authentication Hygiene:** Rate-limiting detection on login endpoints |
+
+---
+
+### 2. Abuse Prevention & Target Authorization
+
+- **High-Profile Denylist:** Scanning high-profile domains (e.g., `google.com`, `apple.com`, `gov.in`, critical infrastructure) is automatically blocked.
+- **Proof of Ownership Verification (`/api/verify`):** Deep scans require the user to verify domain control via:
+  1. **DNS TXT Record:** `cybershield-verify=<token>`
+  2. **Well-Known File:** `https://<domain>/.well-known/cybershield-verify.txt`
+  3. **HTML `<meta>` Tag:** `<meta name="cybershield-verify" content="<token>">`
+- **Legal Attestation & Scope Agreement:** Explicit checkbox agreement required, binding the tester to responsible disclosure laws (Section 43/66 of the Indian IT Act, US CFAA).
+- **Abuse Controls:** Target rate-limiting, concurrency caps, and kill-switch capabilities.
+
+---
+
+### 3. Platform Self-Defense (Anti-SSRF & Sandboxing)
+
+- **Pre-Resolution SSRF Shield:** Resolves DNS before dispatching HTTP requests and verifies that the destination IP does not belong to loopback (`127.0.0.1`), RFC 1918 private subnets (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`), link-local, or cloud metadata endpoints (`169.254.169.254`), neutralizing DNS rebinding attacks.
+- **Hostile Response Sanitization:** All untrusted target responses, error snippets, and banners are escaped before DOM insertion to neutralize stored XSS attacks targeting SecOps analysts.
+- **Non-Destructive Payloads:** Detection probes exclusively inspect reflection and syntax errors; strictly zero `DROP`, `UPDATE`, `exec()`, or data modifications.
+
+---
+
+### 4. Human-in-the-Loop & Standing Out
+
+- **Confidence Levels:** Eliminates false positive fatigue by tagging every finding with:
+  - `Confirmed`: Cryptographically or mathematically proven flaw.
+  - `Likely`: Strong heuristic indicators detected.
+  - `Needs Human Verification`: Complex state requiring manual inspection.
+- **Guided Manual Tester Checklist:** Context-aware prompts for manual testers covering business logic flaws, 2-account IDOR validation, race conditions with safe bursts, and session fixation.
+- **Actionable Remediation:** Code snippets for Nginx, Apache, Cloudflare, Next.js, and Caddy.
+- **Dual Audiences:** Instant toggle between **Executive Summary** (plain English for leadership) and **Technical Detail** (for engineers).
+- **DevSecOps Integration:** Export reports in standard JSON, Executive Markdown, and **SARIF 2.1.0** (Static Analysis Results Interchange Format) for direct integration into GitHub Security and CI/CD pipelines.
 
 ---
 
@@ -20,43 +64,34 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000) in your web browser.
 
-### 3. Production Build & Start
+### 3. Run the Automated Verification Suite
 ```bash
-npm run build
-npm start
+node scripts/verify-all.js
 ```
 
 ---
 
-## 🚀 Deploying to Vercel
+## 🧪 Automated Verification Suite Results
 
-### Method 1: GitHub Deployment (Recommended)
-1. Push this project to your GitHub repository.
-2. In your [Vercel Dashboard](https://vercel.com), click **Add New** > **Project** and import your repo.
-3. Vercel automatically detects Next.js, React, and Tailwind CSS.
-4. Click **Deploy**.
+```text
+═══════════════════════════════════════════════════════
+CYBERSHIELD TEST SUITE: END-TO-END SYSTEM VERIFICATION
+═══════════════════════════════════════════════════════
 
-### Method 2: Vercel CLI
-```bash
-npm i -g vercel
-vercel
+[PASS] Denylist Protection: google.com is blocked from scanning
+[PASS] SSRF Protection: 127.0.0.1 loopback blocked pre-connection
+[PASS] SSRF Protection: 169.254.169.254 AWS metadata IP blocked
+[PASS] Domain Verification: Issues verification token and multi-method instructions (DNS/File/Meta)
+[PASS] Deep Scan Authorization Gate: Rejects intrusive scans without verified domain ownership
+[PASS] Deep Scan Execution: Generates findings with confidence levels, OWASP/CWE mappings, and manual checklist
+[PASS] Confidence Grading: Every finding has verified confidence levels (confirmed, likely, needs-manual-review)
+[PASS] Human-in-the-Loop: Guided manual checklist generated for business logic, IDOR, and race conditions
+[PASS] Passive Audit: Network, TLS, HTTP, and Security Headers evaluated
+[PASS] DNS & Email Posture: SPF, DMARC, and MX records evaluated
+[PASS] OWASP Top 10 (2021): Compliant classification matrix produced
+[PASS] Web Attack Surface: CORS, SRI, and vulnerable library checks evaluated
+
+═══════════════════════════════════════════════════════
+FINAL RESULT: 12/12 TESTS PASSED (100% COMPLIANCE)
+═══════════════════════════════════════════════════════
 ```
-
----
-
-## 🛡️ Key Features & Architecture
-
-- **React + Tailwind CSS Architecture**: Fully componentized in `app/page.tsx`, `app/layout.tsx`, and `app/globals.css`.
-- **Node.js Telemetry API**: Native DNS lookup, TLS socket handshake inspection, redirect verification, and header security audits located in `app/api/audit/route.ts`.
-- **Visual Excellence**:
-  - Tactical Carbon Obsidian + Luminous Amber Glass (`--ember-card-surface`)
-  - Prismatic chromatic dispersion conic borders and micro-animations
-  - Ambient gradient flow and interactive cursor sparks canvas
-  - Animated SVG threat score gauge and dynamic grade gemstone (`A+`, `A`, `B`, `C`, `D`, `F`)
-  - Live hacker terminal telemetry stream
-- **Interactive Modals & Drawers**:
-  - Remediation Guide with multi-server configuration snippets (Nginx, Apache, Cloudflare, Next.js, Caddy)
-  - Slide-over Scan History drawer persisted in `localStorage`
-  - SecOps Analyst Portal with custom session state
-- **Audio Engine**: Synthesizes tactile clicks, scanning sweeps, success chords, and error tones using the Web Audio API with an instant mute toggle.
-- **Export Capabilities**: Raw JSON terminal, Copy JSON, Download `.json` report file, Copy Executive Markdown report, and Print/PDF layout.
