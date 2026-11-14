@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { AuditReport } from "./api/audit/route";
+import { FindingsPanel, type Challenge } from "./ScanExtras";
+import { formatFriendlyError, type FriendlyError } from "@/lib/errors";
 
 const REMEDIATION_DB: Record<
   string,
@@ -101,8 +103,40 @@ export default function CyberShieldPage() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [targetInput, setTargetInput] = useState("");
+  const [tier, setTier] = useState<"basic" | "deep">("basic");
+  const [verifyChallenge, setVerifyChallenge] = useState<Challenge | null>(null);
+  const [isVerifyPanelOpen, setIsVerifyPanelOpen] = useState(false);
+  const [verifyMethod, setVerifyMethod] = useState<"dns" | "file" | "meta">("dns");
+  const [verifyStatus, setVerifyStatus] = useState<"idle" | "issued" | "verified" | "failed">("idle");
+  const [verifiedDomain, setVerifiedDomain] = useState<string | null>(null);
+  const [authorizedAttested, setAuthorizedAttested] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [isAuditing, setIsAuditing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<{
+    title: string;
+    message: string;
+    hint?: string;
+    code?: string;
+    isUserError?: boolean;
+  } | null>(null);
+
+  const showFriendlyError = (
+    title: string,
+    message: string,
+    hint?: string,
+    code?: string,
+    isUserError = true
+  ) => {
+    playSound("error");
+    setErrorMsg(message);
+    setErrorDetails({ title, message, hint, code, isUserError });
+  };
+
+  const clearError = () => {
+    setErrorMsg(null);
+    setErrorDetails(null);
+  };
 
   // Live Terminal
   const [isTerminalVisible, setIsTerminalVisible] = useState(false);
@@ -412,16 +446,162 @@ export default function CyberShieldPage() {
     });
   };
 
+  const parseHostname = (raw: string) =>
+    raw.replace(/^https?:\/\//i, "").replace(/\/.*$/, "").toLowerCase();
+
+  const handleTargetChange = (val: string) => {
+    setTargetInput(val);
+    const host = parseHostname(val);
+    if (verifiedDomain && host !== verifiedDomain) {
+      setVerifyStatus("idle");
+      setVerifiedDomain(null);
+      setVerifyChallenge(null);
+    }
+  };
+
+  const handleIssueToken = async () => {
+    const rawTarget = targetInput.trim();
+    if (!rawTarget) {
+      showFriendlyError(
+        "Target Domain Required",
+        "Please enter a domain or website URL first to generate your ownership verification token.",
+        "Example: mycompany.com or staging.example.org",
+        "BAD_INPUT",
+        true
+      );
+      return;
+    }
+    playSound("click");
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: parseHostname(rawTarget) }),
+      });
+      const data = await res.json();
+      if (data.challenge) {
+        setVerifyChallenge(data.challenge as Challenge);
+        setVerifyStatus("issued");
+        setIsVerifyPanelOpen(true);
+        addLog("VERIFY", `Token issued for ${data.challenge.hostname}`);
+        clearError();
+      } else {
+        const friendly = formatFriendlyError(data.code || "TOKEN_ERROR", data.error || data.friendly_message);
+        showFriendlyError(
+          data.title || friendly.title,
+          data.error || friendly.message,
+          data.hint || friendly.hint,
+          data.code || friendly.code,
+          data.is_user_error !== undefined ? data.is_user_error : friendly.isUserError
+        );
+      }
+    } catch {
+      showFriendlyError(
+        "Verification Token Issue Failed",
+        "Unable to communicate with the verification service. Please verify your connection.",
+        "Check that your target domain format is valid (e.g. example.com).",
+        "NETWORK_ERROR",
+        false
+      );
+    }
+  };
+
+  const handleVerify = async () => {
+    const rawTarget = targetInput.trim();
+    if (!rawTarget || !verifyChallenge) return;
+    if (!authorizedAttested) {
+      showFriendlyError(
+        "Authorization Attestation Required",
+        "Please confirm that you have legal permission to test this target domain under applicable cyber laws.",
+        "Tick the attestation checkbox next to 'Legal Attestation' above.",
+        "ATTESTATION_REQUIRED",
+        true
+      );
+      return;
+    }
+    setIsVerifying(true);
+    playSound("click");
+    try {
+      const targetHost = parseHostname(rawTarget);
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: targetHost, check: true, method: verifyMethod }),
+      });
+      const data = await res.json();
+      if (data.verified) {
+        setVerifyStatus("verified");
+        setVerifiedDomain(targetHost);
+        setIsVerifyPanelOpen(false);
+        playSound("success");
+        addLog("VERIFY", `Domain ownership verified live via ${data.method || "challenge"}`);
+        clearError();
+      } else {
+        setVerifyStatus("failed");
+        setVerifiedDomain(null);
+        const friendly = formatFriendlyError(data.code || "NOT_VERIFIED", data.error || data.detail);
+        showFriendlyError(
+          data.title || friendly.title,
+          data.error || data.detail || friendly.message,
+          data.hint || friendly.hint,
+          data.code || "NOT_VERIFIED",
+          true
+        );
+      }
+    } catch {
+      setVerifyStatus("failed");
+      setVerifiedDomain(null);
+      showFriendlyError(
+        "Verification Request Failed",
+        "The verification check could not be completed. The remote server may be timing out or DNS is still propagating.",
+        "Wait a minute for DNS changes or web files to propagate, then click 'Verify Now' again.",
+        "NETWORK_ERROR",
+        false
+      );
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const handleAudit = async (targetOverride?: string) => {
     const rawTarget = (targetOverride || targetInput).trim();
     if (!rawTarget) {
-      setErrorMsg("Please enter a valid website hostname or URL (e.g. github.com)");
-      playSound("error");
+      showFriendlyError(
+        "Target Domain Required",
+        "Please enter a valid website hostname or URL (e.g. github.com, cloudflare.com) to start scanning.",
+        "Tip: You can click any of the preset chips below for a one-click scan.",
+        "BAD_INPUT",
+        true
+      );
+      return;
+    }
+
+    const currentHost = parseHostname(rawTarget);
+    if (tier === "deep" && (verifyStatus !== "verified" || verifiedDomain !== currentHost)) {
+      setIsVerifyPanelOpen(true);
+      showFriendlyError(
+        "Domain Ownership Verification Required",
+        "Deep Scan performs active security probing and requires verified domain ownership to protect against unauthorized scanning.",
+        "Add a DNS TXT record, upload the verification file, or insert the HTML meta tag, then click 'Verify Now'.",
+        "NOT_VERIFIED",
+        true
+      );
+      return;
+    }
+    if (tier === "deep" && !authorizedAttested) {
+      setIsVerifyPanelOpen(true);
+      showFriendlyError(
+        "Authorization Attestation Required",
+        "Please confirm that you have legal authorization to test this target domain under applicable cyber laws.",
+        "Tick the attestation checkbox in the Verification Panel below to proceed.",
+        "ATTESTATION_REQUIRED",
+        true
+      );
       return;
     }
 
     playSound("scanStart");
-    setErrorMsg(null);
+    clearError();
     setAuditData(null);
     setIsTerminalVisible(true);
     setTerminalLogs([]);
@@ -459,12 +639,33 @@ export default function CyberShieldPage() {
       const res = await fetch("/api/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: rawTarget }),
+        body: JSON.stringify({
+          url: rawTarget,
+          tier,
+          attested: authorizedAttested,
+          user_id: userProfile?.email || undefined,
+        }),
       });
       const data = await res.json();
+      if (data.code === "NOT_VERIFIED" && data.challenge) {
+        setVerifyChallenge(data.challenge as Challenge);
+        setVerifyStatus("issued");
+        setIsVerifyPanelOpen(true);
+      }
 
       if (!res.ok || data.error) {
-        throw new Error(data.error || "Failed to complete security audit.");
+        const friendly = formatFriendlyError(data.code || "AUDIT_ERROR", data.error || data.friendly_message);
+        showFriendlyError(
+          data.title || friendly.title,
+          data.error || friendly.message,
+          data.hint || friendly.hint,
+          data.code || friendly.code,
+          data.is_user_error !== undefined ? data.is_user_error : friendly.isUserError
+        );
+        addLog("NOTICE", `[${data.code || "NOTICE"}] ${data.error || friendly.message}`);
+        setTermStatus("FAILED");
+        setIsAuditing(false);
+        return;
       }
 
       addLog(
@@ -481,17 +682,23 @@ export default function CyberShieldPage() {
       }, 500);
     } catch (err: any) {
       setTermStatus("FAILED");
-      addLog("ERROR", err.message);
-      playSound("error");
-      setErrorMsg(err.message);
+      addLog("ERROR", err.message || "Audit connection failed");
+      const friendly = formatFriendlyError("UNEXPECTED_ERROR", err.message);
+      showFriendlyError(
+        friendly.title,
+        err.message || friendly.message,
+        friendly.hint,
+        friendly.code,
+        friendly.isUserError
+      );
       setIsAuditing(false);
     }
   };
 
   const handleQuickPreset = (domain: string) => {
     playSound("click");
-    setTargetInput(domain);
-    handleAudit(domain);
+    handleTargetChange(domain);
+    clearError();
   };
 
   const copyJson = () => {
@@ -882,8 +1089,187 @@ ${Object.keys(d.http.present_headers || {})
           </div>
         </section>
 
-        {/* Search Cockpit (Image 1 Style Ember Bloom Card) */}
+        {/* Search Cockpit */}
         <section className="ember-card search-cockpit">
+          {/* ── Scan Tier Selector ── */}
+          <div className="tier-selector-row">
+            <button
+              type="button"
+              className={`tier-btn ${tier === "basic" ? "active" : ""}`}
+              onClick={() => {
+                playSound("click");
+                setTier("basic");
+                setIsVerifyPanelOpen(false);
+              }}
+            >
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Basic Scan
+              <span className="tier-badge">Passive</span>
+            </button>
+            <button
+              type="button"
+              className={`tier-btn ${tier === "deep" ? "active" : ""}`}
+              onClick={() => {
+                playSound("click");
+                setTier("deep");
+                if (verifyStatus !== "verified") setIsVerifyPanelOpen(true);
+              }}
+            >
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 8v4m0 4h.01" />
+              </svg>
+              Deep Scan
+              <span className="tier-badge deep">Active</span>
+              <span className="tier-badge">Verified</span>
+            </button>
+            {tier === "deep" && (
+              <button
+                type="button"
+                className={`tier-btn verify-status-btn ${verifyStatus === "verified" ? "verified" : ""} ${isVerifyPanelOpen && verifyStatus !== "verified" ? "active" : ""}`}
+                onClick={() => {
+                  playSound("click");
+                  setIsVerifyPanelOpen(!isVerifyPanelOpen);
+                }}
+              >
+                {verifyStatus === "verified" ? (
+                  <span className="domain-verified-badge">✓ Domain Verified</span>
+                ) : (
+                  <>
+                    <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Verify Ownership
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* ── Verification Panel ── */}
+          {tier === "deep" && isVerifyPanelOpen && (
+            <div className="verify-banner">
+              <h4>
+                <svg width="17" height="17" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" />
+                </svg>
+                Domain Ownership Verification Required
+              </h4>
+              {verifyStatus !== "verified" ? (
+                <>
+                  <p>
+                    Deep Scan performs active testing. You must prove control of the target domain before scanning.
+                    Choose a method and place the token, then click Verify.
+                  </p>
+                  <div className="verify-steps">
+                    <div className="verify-step">
+                      <div className="verify-step-num">1</div>
+                      <div>Click <strong>Get Token</strong> to generate your unique verification token.</div>
+                    </div>
+                    <div className="verify-step">
+                      <div className="verify-step-num">2</div>
+                      <div>
+                        Place it using one of these methods:
+                        <div className="verify-method-row">
+                          {(["dns", "file", "meta"] as const).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              className={`verify-btn ${verifyMethod === m ? "success" : ""}`}
+                              onClick={() => { playSound("click"); setVerifyMethod(m); }}
+                            >
+                              {m === "dns" ? "DNS TXT Record" : m === "file" ? ".well-known File" : "HTML Meta Tag"}
+                            </button>
+                          ))}
+                        </div>
+                        {verifyChallenge && (
+                          <div style={{ marginTop: "8px" }}>
+                            {verifyMethod === "dns" && (
+                              <div className="verify-code-box">
+                                DNS TXT record on {verifyChallenge.dns.name}:<br />
+                                {verifyChallenge.dns.value}
+                              </div>
+                            )}
+                            {verifyMethod === "file" && (
+                              <div className="verify-code-box">
+                                Create: {verifyChallenge.file.url}<br />
+                                Contents: {verifyChallenge.file.content}
+                              </div>
+                            )}
+                            {verifyMethod === "meta" && (
+                              <div className="verify-code-box">
+                                {'<meta name="cybershield-verify" content="'}{verifyChallenge.token}{'" />'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="verify-step">
+                      <div className="verify-step-num">3</div>
+                      <div>Click <strong>Verify Now</strong> to confirm ownership.</div>
+                    </div>
+                  </div>
+                  {verifyStatus === "failed" && (
+                    <p className="verify-fail-msg">
+                      ✗ Verification failed. Check that you placed the token correctly and try again.
+                    </p>
+                  )}
+                  <label className="verify-attest">
+                    <input
+                      type="checkbox"
+                      checked={authorizedAttested}
+                      onChange={(e) => setAuthorizedAttested(e.target.checked)}
+                    />
+                    <span>
+                      <strong>Legal Attestation &amp; Scope Agreement:</strong> I attest that I am the verified owner or possess explicit, written authorization to perform active security tests on this domain under applicable cyber security laws (e.g., Section 43/66 of Indian IT Act, US CFAA).
+                    </span>
+                  </label>
+
+                  <div className="verify-btn-row">
+                    <button type="button" className="verify-btn" onClick={handleIssueToken}>
+                      {verifyChallenge ? "↺ Regenerate Token" : "Get Token"}
+                    </button>
+                    {verifyChallenge && (
+                      <button
+                        type="button"
+                        className="verify-btn"
+                        onClick={handleVerify}
+                        disabled={isVerifying}
+                      >
+                        {isVerifying ? "Verifying..." : "Verify Now →"}
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="verify-success-row">
+                  <div className="verify-success-left">
+                    <span className="domain-verified-badge">✓ Ownership Verified ({verifiedDomain})</span>
+                    <span className="verify-success-text">
+                      Ownership confirmed via DNS/File &amp; Scope Attested.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="verify-btn"
+                    style={{ padding: "4px 10px", fontSize: "0.74rem" }}
+                    onClick={() => {
+                      setVerifyStatus("idle");
+                      setVerifiedDomain(null);
+                      setAuthorizedAttested(false);
+                      setVerifyChallenge(null);
+                    }}
+                  >
+                    Reset Verification
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="search-input-group">
             <div className="search-wrapper">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -897,16 +1283,17 @@ ${Object.keys(d.http.present_headers || {})
                 className="target-input"
                 placeholder="Enter domain or URL (e.g. github.com)"
                 value={targetInput}
-                onChange={(e) => setTargetInput(e.target.value)}
+                onChange={(e) => handleTargetChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAudit();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                  }
                 }}
                 autoComplete="off"
                 spellCheck="false"
               />
             </div>
 
-            {/* Chromatic Audit Button */}
             <button
               id="scanBtn"
               className="audit-btn"
@@ -914,7 +1301,11 @@ ${Object.keys(d.http.present_headers || {})
               onClick={() => handleAudit()}
             >
               <div className="audit-btn-inner">
-                <span>{isAuditing ? "Auditing..." : "Audit Target"}</span>
+                <span>
+                  {isAuditing
+                    ? tier === "deep" ? "Deep Scanning..." : "Auditing..."
+                    : tier === "deep" ? "Deep Scan" : "Audit Target"}
+                </span>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" />
                   <path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
@@ -927,36 +1318,134 @@ ${Object.keys(d.http.present_headers || {})
 
           <div className="quick-targets-row">
             <span className="quick-targets-label">Preset Targets:</span>
-            <button className="quick-chip" onClick={() => handleQuickPreset("github.com")}>
+            <button type="button" className="quick-chip" onClick={() => handleQuickPreset("github.com")}>
               github.com
             </button>
-            <button className="quick-chip" onClick={() => handleQuickPreset("google.com")}>
-              google.com
-            </button>
-            <button className="quick-chip" onClick={() => handleQuickPreset("stripe.com")}>
+            <button type="button" className="quick-chip" onClick={() => handleQuickPreset("stripe.com")}>
               stripe.com
             </button>
-            <button className="quick-chip" onClick={() => handleQuickPreset("cloudflare.com")}>
+            <button type="button" className="quick-chip" onClick={() => handleQuickPreset("cloudflare.com")}>
               cloudflare.com
             </button>
-            <button className="quick-chip" onClick={() => handleQuickPreset("e-commerce-zeta-virid-84.vercel.app")}>
+            <button type="button" className="quick-chip" onClick={() => handleQuickPreset("e-commerce-zeta-virid-84.vercel.app")}>
               vercel-demo.app
             </button>
+            {tier === "deep" && verifyStatus !== "verified" && (
+              <span className="deep-verify-hint">⚠ Verify domain before Deep Scan</span>
+            )}
           </div>
         </section>
 
-        {/* Error Alert Card */}
-        {errorMsg && (
+        {/* Friendly Error Alert Card */}
+        {(errorDetails || errorMsg) && (
           <div id="errorAlert" className="error-alert" style={{ display: "block" }}>
-            <h4>
-              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              Audit Execution Error
-            </h4>
-            <p id="errorMessage">{errorMsg}</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+              <div style={{ flex: 1 }}>
+                <h4>
+                  <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  {errorDetails?.title || "Security Notice"}
+                  {errorDetails && (
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        background: errorDetails.isUserError ? "rgba(255, 183, 3, 0.18)" : "rgba(255, 34, 63, 0.18)",
+                        color: errorDetails.isUserError ? "#ffb703" : "#ff4d4d",
+                        border: `1px solid ${errorDetails.isUserError ? "rgba(255, 183, 3, 0.35)" : "rgba(255, 34, 63, 0.35)"}`,
+                        fontWeight: 600,
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {errorDetails.isUserError ? "Policy / Input Guidance" : "System / Network Notice"}
+                    </span>
+                  )}
+                </h4>
+                <p id="errorMessage" style={{ margin: "6px 0 10px 0", lineHeight: 1.55 }}>
+                  {errorDetails?.message || errorMsg}
+                </p>
+                {errorDetails?.hint && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: "8px",
+                      background: "rgba(0, 0, 0, 0.25)",
+                      padding: "8px 12px",
+                      borderRadius: "10px",
+                      border: "1px solid rgba(255, 255, 255, 0.08)",
+                      fontSize: "0.84rem",
+                      color: "var(--text-secondary)",
+                      marginTop: "6px",
+                    }}
+                  >
+                    <span style={{ fontSize: "1rem" }}>💡</span>
+                    <span>
+                      <strong style={{ color: "var(--text-primary)" }}>Helpful Suggestion: </strong>
+                      {errorDetails.hint}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={clearError}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "var(--text-muted)",
+                  cursor: "pointer",
+                  fontSize: "1.2rem",
+                  padding: "4px 8px",
+                  lineHeight: 1,
+                  borderRadius: "6px",
+                }}
+                title="Dismiss message"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Quick Helper Actions */}
+            <div style={{ marginTop: "12px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              {errorDetails?.code === "NOT_VERIFIED" && (
+                <button
+                  type="button"
+                  className="action-btn"
+                  style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                  onClick={() => {
+                    setIsVerifyPanelOpen(true);
+                  }}
+                >
+                  Open Verification Panel →
+                </button>
+              )}
+              {(errorDetails?.code === "DENYLISTED" || errorDetails?.code === "IP_LITERAL" || errorDetails?.code === "INTERNAL_HOST") && (
+                <button
+                  type="button"
+                  className="action-btn"
+                  style={{ fontSize: "0.78rem", padding: "5px 12px" }}
+                  onClick={() => {
+                    handleQuickPreset("cloudflare.com");
+                  }}
+                >
+                  Try Demo Target: cloudflare.com
+                </button>
+              )}
+              <button
+                type="button"
+                className="action-btn"
+                style={{ fontSize: "0.78rem", padding: "5px 12px", opacity: 0.8 }}
+                onClick={clearError}
+              >
+                Dismiss Notice
+              </button>
+            </div>
           </div>
         )}
 
@@ -974,7 +1463,8 @@ ${Object.keys(d.http.present_headers || {})
                   <polyline points="4 17 10 11 4 5" />
                   <line x1="12" y1="19" x2="20" y2="19" />
                 </svg>
-                CYBERSHIELD_AGENT // THREAT_TELEMETRY_ENGINE
+                CYBERSHIELD_AGENT // THREAT_TELEMETRY_ENGINE &nbsp;
+                <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", opacity: 0.7, fontStyle: "italic" }}>[SIMULATED LOG STREAM]</span>
               </div>
               <div
                 id="termStatus"
@@ -1195,6 +1685,14 @@ ${Object.keys(d.http.present_headers || {})
             </div>
 
             {/* HTTP Security Headers Matrix */}
+            <FindingsPanel
+              findings={auditData.findings}
+              manual={auditData.manual_checks}
+              tier={auditData.tier}
+              verified={auditData.authorization?.verified}
+              limitations={auditData.limitations}
+            />
+
             <div className="ember-card audit-card">
               <div className="audit-card-header">
                 <div className="audit-card-title">

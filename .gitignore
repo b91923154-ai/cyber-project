@@ -1,18 +1,13 @@
-# Byte-compiled / optimized / DLL files
+# Byte-compiled / optimized
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# Backups and archives
-index copy.py
-*.prev.py
-New folder/
-*.zip
-
-# Environments
+# Environments — never commit secrets
 .env
 .env.*
+!.env.example
 .venv/
 env/
 venv/
@@ -27,3 +22,8 @@ build/
 *.tsbuildinfo
 next-env.d.ts
 
+# Backups and archives
+index copy.py
+*.prev.py
+New folder/
+*.zip
