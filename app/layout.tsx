@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-<<<<<<< HEAD
 import {AuthProvider } from "./context/AuthContext";
 
-=======
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 export const metadata: Metadata = {
   title: "CYBERSHIELD — Threat Intelligence & Cryptographic Assurance Platform",
   description:
@@ -34,13 +31,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-<<<<<<< HEAD
       <body> <AuthProvider>
           {children}
         </AuthProvider></body>
-=======
-      <body>{children}</body>
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
     </html>
   );
 }

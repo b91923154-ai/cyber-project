@@ -2,21 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { AuditReport } from "./api/audit/route";
-<<<<<<< HEAD
 import { FindingsPanel, type Challenge } from "./ScanExtras";
 import { formatFriendlyError, type FriendlyError } from "@/lib/errors";
-=======
-<<<<<<< HEAD
-import { useAuth } from "./context/AuthContext";
-import Nav from "./nav";
-
-import RemediationGuideModal from "./RemediationGuideModal";
-import ScanHistoryDrawer from "./ScanHistoryDrawer";
-import SecOpsAuthModal from "./SecOpsAuthModal";
-import MainUI from "./MainUI";
-=======
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
->>>>>>> 2fb172b8bd88aad685e79ea0fc4679d98d353713
 
 const REMEDIATION_DB: Record<
   string,
@@ -106,13 +93,6 @@ interface TerminalLog {
   msg: string;
 }
 
-<<<<<<< HEAD
-
-
-export default function CyberShieldPage() {
-
-  // Local States
-=======
 interface UserProfile {
   name: string;
   email: string;
@@ -120,7 +100,6 @@ interface UserProfile {
 }
 
 export default function CyberShieldPage() {
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [targetInput, setTargetInput] = useState("");
@@ -159,33 +138,15 @@ export default function CyberShieldPage() {
     setErrorDetails(null);
   };
 
-<<<<<<< HEAD
-
-
-  // Live Terminal
-  const [isTerminalVisible, setIsTerminalVisible] = useState(false);
-  const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
-  const [termStatus, setTermStatus] = useState<
-    "IDLE" | "ACTIVE" | "RUNNING" | "FINISHED" | "FAILED"
-  >("ACTIVE");
-=======
   // Live Terminal
   const [isTerminalVisible, setIsTerminalVisible] = useState(false);
   const [terminalLogs, setTerminalLogs] = useState<TerminalLog[]>([]);
   const [termStatus, setTermStatus] = useState<"IDLE" | "ACTIVE" | "RUNNING" | "FINISHED" | "FAILED">("ACTIVE");
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   // Results
   const [auditData, setAuditData] = useState<AuditReport | null>(null);
   const [animatedScore, setAnimatedScore] = useState(0);
 
-<<<<<<< HEAD
-  // Copy Buttons
-  const [copyJsonText, setCopyJsonText] = useState("Copy JSON Report");
-  const [copyMdText, setCopyMdText] = useState("Copy Executive Markdown");
-
-  // Refs
-=======
   // Modals & Drawers
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [scanHistory, setScanHistory] = useState<AuditReport[]>([]);
@@ -211,37 +172,12 @@ export default function CyberShieldPage() {
   const [copyMdText, setCopyMdText] = useState("Copy Executive Markdown");
 
   const inputRef = useRef<HTMLInputElement>(null);
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorGlowRef = useRef<HTMLDivElement>(null);
   const cursorDotRef = useRef<HTMLDivElement>(null);
 
-<<<<<<< HEAD
-  // Shared Context States
-  const {
-    authModal,
-    setAuthModal,
-
-    isHistoryOpen,
-    setIsHistoryOpen,
-
-    scanHistory,
-    setScanHistory,
-
-    remedModal,
-    setRemedModal,
-
-    
-    setIsProfileDropdownOpen,
-    setUserProfile,
-  } = useAuth();
-
-  
-
-=======
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
   // Audio Engine
   const playSound = useCallback(
     (type: "click" | "scanStart" | "success" | "error") => {
@@ -327,9 +263,6 @@ export default function CyberShieldPage() {
     } catch {}
   }, []);
 
-<<<<<<< HEAD
-
-=======
   const toggleTheme = () => {
     playSound("click");
     const next = theme === "dark" ? "light" : "dark";
@@ -337,7 +270,6 @@ export default function CyberShieldPage() {
     document.documentElement.setAttribute("data-theme", next);
     localStorage.setItem("cybershield-theme", next);
   };
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   const toggleAudio = () => {
     const next = !isAudioMuted;
@@ -850,31 +782,16 @@ ${Object.keys(d.http.present_headers || {})
     e.preventDefault();
     playSound("success");
     const name = authName.trim() || authEmail.split("@")[0] || "SecOps Analyst";
-<<<<<<< HEAD
-
-const initials = name
-  .split(" ")
-  .map((word) => word[0])
-  .join("")
-  .toUpperCase()
-  .slice(0, 2);
-    
-=======
     const initials = name.slice(0, 2).toUpperCase();
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
     setUserProfile({ name, email: authEmail, initials });
     setAuthModal((p) => ({ ...p, open: false }));
   };
 
-<<<<<<< HEAD
-
-=======
   const handleSignOut = () => {
     playSound("click");
     setUserProfile(null);
     setIsProfileDropdownOpen(false);
   };
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
   const clearHistory = () => {
     playSound("click");
@@ -892,7 +809,7 @@ const initials = name
 
   return (
     <>
-      {/* ═══════════ AMBIENT CANVAS & CURSOR ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• AMBIENT CANVAS & CURSOR â•â•â•â•â•â•â•â•â•â•â• */}
       <div className="ambient-canvas" aria-hidden="true">
         <div className="gradient-flow" />
         <div className="cyber-grid" />
@@ -900,10 +817,6 @@ const initials = name
         <div className="pulse-orb pulse-orb-2" />
         <div className="pulse-orb pulse-orb-3" />
       </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
       <div className="cursor-glow" id="cursorGlow" ref={cursorGlowRef} />
       <div className="cursor-dot" id="cursorDot" ref={cursorDotRef} />
       <canvas
@@ -920,19 +833,7 @@ const initials = name
         }}
       />
 
-<<<<<<< HEAD
-      {/* NAV... */}
-      
-         <Nav />
-
-        {/* Main */}
-        <MainUI/>
-
-      <RemediationGuideModal playSound={playSound} />
- 
-
-=======
-      {/* ═══════════ NAVIGATION BAR ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• NAVIGATION BAR â•â•â•â•â•â•â•â•â•â•â• */}
       <nav className="nav-bar">
         <div className="nav-inner">
           <a
@@ -1166,7 +1067,7 @@ const initials = name
         </div>
       </nav>
 
-      {/* ═══════════ MAIN CONTENT ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• MAIN CONTENT â•â•â•â•â•â•â•â•â•â•â• */}
       <main className="main-content">
         {/* Hero Section */}
         <section className="hero">
@@ -1190,7 +1091,7 @@ const initials = name
 
         {/* Search Cockpit */}
         <section className="ember-card search-cockpit">
-          {/* ── Scan Tier Selector ── */}
+          {/* â”€â”€ Scan Tier Selector â”€â”€ */}
           <div className="tier-selector-row">
             <button
               type="button"
@@ -1234,7 +1135,7 @@ const initials = name
                 }}
               >
                 {verifyStatus === "verified" ? (
-                  <span className="domain-verified-badge">✓ Domain Verified</span>
+                  <span className="domain-verified-badge">âœ“ Domain Verified</span>
                 ) : (
                   <>
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -1247,7 +1148,7 @@ const initials = name
             )}
           </div>
 
-          {/* ── Verification Panel ── */}
+          {/* â”€â”€ Verification Panel â”€â”€ */}
           {tier === "deep" && isVerifyPanelOpen && (
             <div className="verify-banner">
               <h4>
@@ -1313,7 +1214,7 @@ const initials = name
                   </div>
                   {verifyStatus === "failed" && (
                     <p className="verify-fail-msg">
-                      ✗ Verification failed. Check that you placed the token correctly and try again.
+                      âœ— Verification failed. Check that you placed the token correctly and try again.
                     </p>
                   )}
                   <label className="verify-attest">
@@ -1329,7 +1230,7 @@ const initials = name
 
                   <div className="verify-btn-row">
                     <button type="button" className="verify-btn" onClick={handleIssueToken}>
-                      {verifyChallenge ? "↺ Regenerate Token" : "Get Token"}
+                      {verifyChallenge ? "â†º Regenerate Token" : "Get Token"}
                     </button>
                     {verifyChallenge && (
                       <button
@@ -1338,7 +1239,7 @@ const initials = name
                         onClick={handleVerify}
                         disabled={isVerifying}
                       >
-                        {isVerifying ? "Verifying..." : "Verify Now →"}
+                        {isVerifying ? "Verifying..." : "Verify Now â†’"}
                       </button>
                     )}
                   </div>
@@ -1346,7 +1247,7 @@ const initials = name
               ) : (
                 <div className="verify-success-row">
                   <div className="verify-success-left">
-                    <span className="domain-verified-badge">✓ Ownership Verified ({verifiedDomain})</span>
+                    <span className="domain-verified-badge">âœ“ Ownership Verified ({verifiedDomain})</span>
                     <span className="verify-success-text">
                       Ownership confirmed via DNS/File &amp; Scope Attested.
                     </span>
@@ -1430,7 +1331,7 @@ const initials = name
               vercel-demo.app
             </button>
             {tier === "deep" && verifyStatus !== "verified" && (
-              <span className="deep-verify-hint">⚠ Verify domain before Deep Scan</span>
+              <span className="deep-verify-hint">âš  Verify domain before Deep Scan</span>
             )}
           </div>
         </section>
@@ -1483,7 +1384,7 @@ const initials = name
                       marginTop: "6px",
                     }}
                   >
-                    <span style={{ fontSize: "1rem" }}>💡</span>
+                    <span style={{ fontSize: "1rem" }}>ðŸ’¡</span>
                     <span>
                       <strong style={{ color: "var(--text-primary)" }}>Helpful Suggestion: </strong>
                       {errorDetails.hint}
@@ -1506,7 +1407,7 @@ const initials = name
                 }}
                 title="Dismiss message"
               >
-                ✕
+                âœ•
               </button>
             </div>
 
@@ -1521,7 +1422,7 @@ const initials = name
                     setIsVerifyPanelOpen(true);
                   }}
                 >
-                  Open Verification Panel →
+                  Open Verification Panel â†’
                 </button>
               )}
               {(errorDetails?.code === "DENYLISTED" || errorDetails?.code === "IP_LITERAL" || errorDetails?.code === "INTERNAL_HOST") && (
@@ -1859,7 +1760,7 @@ const initials = name
                   ) : (
                     <div className="header-item-row">
                       <span style={{ color: "var(--flame-orange)" }}>
-                        All recommended enterprise security headers are enforced! 🎉
+                        All recommended enterprise security headers are enforced! ðŸŽ‰
                       </span>
                     </div>
                   )}
@@ -2041,9 +1942,8 @@ const initials = name
           </p>
         </footer>
       </main>
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
-      {/* ═══════════ REMEDIATION GUIDE MODAL ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• REMEDIATION GUIDE MODAL â•â•â•â•â•â•â•â•â•â•â• */}
       {remedModal.open && (
         <div
           className="modal-backdrop open"
@@ -2118,15 +2018,7 @@ const initials = name
         </div>
       )}
 
-      {/* ═══════════ SCAN HISTORY DRAWER ═══════════ */}
-<<<<<<< HEAD
-      <ScanHistoryDrawer
-  playSound={playSound}
-  onSelectReport={setAuditData}
-  onClearHistory={clearHistory}
-/>
-
-=======
+      {/* â•â•â•â•â•â•â•â•â•â•â• SCAN HISTORY DRAWER â•â•â•â•â•â•â•â•â•â•â• */}
       {isHistoryOpen && (
         <div
           className="drawer-backdrop open"
@@ -2214,9 +2106,8 @@ const initials = name
           </div>
         </div>
       )}
->>>>>>> 681534fbd7b379c420cc17cc9dc7e83bd1cb7496
 
-      {/* ═══════════ SECOPS AUTH MODAL ═══════════ */}
+      {/* â•â•â•â•â•â•â•â•â•â•â• SECOPS AUTH MODAL â•â•â•â•â•â•â•â•â•â•â• */}
       {authModal.open && (
         <div
           className="modal-backdrop open"
@@ -2303,7 +2194,7 @@ const initials = name
                   type="password"
                   id="authPassword"
                   className="auth-input-elem"
-                  placeholder="••••••••••••"
+                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                   required
                   value={authPassword}
                   onChange={(e) => setAuthPassword(e.target.value)}
